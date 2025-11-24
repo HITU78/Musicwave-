@@ -1,0 +1,54 @@
+from pyrogram import Client, filters
+from yt_dlp import YoutubeDL
+import os
+
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+API_ID = 123456
+API_HASH = "YOUR_API_HASH"
+
+app = Client(
+    "music-bot",
+    bot_token=BOT_TOKEN,
+    api_id=API_ID,
+    api_hash=API_HASH
+)
+
+def download_audio(query):
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "quiet": True,
+        "outtmpl": "%(title)s.%(ext)s",
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }]
+    }
+
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(f"ytsearch:{query}", download=True)
+        entry = info["entries"][0]
+        file_title = ydl.prepare_filename(entry)
+        mp3_file = file_title.rsplit('.', 1)[0] + ".mp3"
+        return mp3_file
+
+
+@app.on_message(filters.command("song"))
+async def song_handler(_, message):
+    query = " ".join(message.command[1:])
+    if not query:
+        return await message.reply("Kya sunna hai? /song <song name> likho.")
+
+    await message.reply("Search ho raha hai, ruk jao...")
+
+    try:
+        file_path = download_audio(query)
+        await message.reply_audio(audio=file_path)
+        os.remove(file_path)
+    except Exception as e:
+        await message.reply(f"Error: {e}")
+
+
+app.run()
+pip install pyrogram tgcrypto yt-dlp ffmpeg-python
+pkg install ffmpeg
